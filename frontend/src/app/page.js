@@ -2931,7 +2931,7 @@ export default function Home() {
 
                   {aboutGallery.length === 0 && (
                     <div className="absolute inset-[8%] flex items-center justify-center rounded-[30px] border-[9px] border-white bg-[#E7EBDD] text-center text-sm font-bold text-[#66816C] shadow-xl">
-                      Upload images in Homepage → About gallery
+                      Image Loading...
                     </div>
                   )}
                 </div>
