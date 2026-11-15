@@ -41,6 +41,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
+import OptimizedImage from "@/components/OptimizedImage";
 
 // ============================================
 // CONSTANTS
@@ -801,11 +802,13 @@ function EventGallery({ event }) {
             transition={{ duration: 0.4, delay: index * 0.05 }}
             className="group relative aspect-[0.82] min-w-0 overflow-hidden rounded-lg bg-[#E2E8E9] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#07563D] focus-visible:ring-offset-2 sm:aspect-[1.25] sm:rounded-xl"
           >
-            <img
+            <OptimizedImage
               src={image}
               alt={`${getEventTitle(event)} photograph ${index + 1}`}
+              fill
+              sizes="(max-width: 639px) 25vw, (max-width: 1023px) 25vw, 33vw"
               loading="lazy"
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+              className="object-cover transition duration-700 group-hover:scale-105"
             />
 
             <div
@@ -889,12 +892,20 @@ function EventGallery({ event }) {
             </>
           )}
 
-          <img
-            src={activeImage}
-            alt={getEventTitle(event)}
+          <div
+            className="relative h-[85vh] w-full max-w-6xl"
             onClick={(eventObject) => eventObject.stopPropagation()}
-            className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
-          />
+          >
+            <OptimizedImage
+              src={activeImage}
+              alt={getEventTitle(event)}
+              fill
+              sizes="(max-width: 639px) 100vw, 1152px"
+              loading="eager"
+              fetchPriority="high"
+              className="rounded-xl object-contain shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </>
@@ -2238,10 +2249,14 @@ function EventDetailContent() {
 
             <div className="relative min-h-full bg-[#0A3327]">
               {cover ? (
-                <img
+                <OptimizedImage
                   src={cover}
                   alt={getEventTitle(event)}
-                  className="absolute inset-0 h-full w-full object-cover object-[center_top] sm:object-center"
+                  fill
+                  sizes="(max-width: 767px) 50vw, (max-width: 1023px) 46vw, 540px"
+                  loading="eager"
+                  fetchPriority="high"
+                  className="object-cover object-[center_top] sm:object-center"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#0A3327] to-[#153F60]">

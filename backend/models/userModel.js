@@ -29,6 +29,13 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    photoPublicId: {
+      type: String,
+      default: "",
+      trim: true,
+      select: false,
+    },
+
     authProviders: {
       type: [
         {
@@ -127,6 +134,7 @@ const userSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.passwordConfirm;
         delete ret.googleId;
+        delete ret.photoPublicId;
         delete ret.passwordResetToken;
         delete ret.passwordResetExpires;
         delete ret.isActive;
@@ -143,6 +151,7 @@ const userSchema = new mongoose.Schema(
         delete ret.password;
         delete ret.passwordConfirm;
         delete ret.googleId;
+        delete ret.photoPublicId;
         delete ret.passwordResetToken;
         delete ret.passwordResetExpires;
         delete ret.isActive;

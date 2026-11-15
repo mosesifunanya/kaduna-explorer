@@ -20,6 +20,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 
 import { apiRequest } from "@/lib/api";
 import useDestinationReviews from "@/hooks/destination/useDestinationReviews";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const REVIEWS_PER_PAGE = 10;
 
@@ -263,9 +264,12 @@ function ReviewCard({ review, index, shouldReduceMotion }) {
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#EAF1EB] text-sm font-semibold text-[#174B35] sm:h-11 sm:w-11">
             {reviewerPhoto ? (
-              <img
+              <OptimizedImage
                 src={reviewerPhoto}
                 alt={reviewerName}
+                width={44}
+                height={44}
+                sizes="44px"
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -304,9 +308,11 @@ function ReviewCard({ review, index, shouldReduceMotion }) {
                 rel="noopener noreferrer"
                 className="group/photo relative aspect-square overflow-hidden rounded-lg bg-[#F1F4F1] sm:rounded-xl"
               >
-                <img
+                <OptimizedImage
                   src={photo.url}
                   alt={photo.alt || `Review photo ${photoIndex + 1}`}
+                  fill
+                  sizes="(max-width: 640px) 33vw, 25vw"
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-500 group-hover/photo:scale-110"
                 />
@@ -608,9 +614,12 @@ function DestinationAllReviewsContent() {
 
       <section className="relative isolate flex min-h-[250px] items-end overflow-hidden bg-[#153D2D] sm:min-h-[310px] lg:min-h-[350px]">
         {destinationImage && (
-          <img
+          <OptimizedImage
             src={destinationImage}
             alt={destinationName}
+            fill
+            priority
+            sizes="100vw"
             className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
           />
         )}

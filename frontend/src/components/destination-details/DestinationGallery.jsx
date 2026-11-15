@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Camera, ChevronLeft, ChevronRight, Images } from "lucide-react";
+import OptimizedImage from "@/components/OptimizedImage";
 
 export default function DestinationGallery({
   destination,
@@ -49,17 +50,23 @@ export default function DestinationGallery({
     >
       <div className="relative isolate aspect-[16/10] min-h-[230px] w-full overflow-hidden rounded-2xl bg-[#E9EAE4] sm:aspect-[16/8] sm:min-h-[320px] lg:aspect-auto lg:h-[420px] lg:min-h-0 xl:h-[460px]">
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={currentImage}
-            src={currentImage}
-            alt={`${destination.name} photograph ${activeImage + 1}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            draggable="false"
-            className="absolute inset-0 h-full w-full object-contain"
-          />
+            className="absolute inset-0"
+          >
+            <OptimizedImage
+              src={currentImage}
+              alt={`${destination.name} photograph ${activeImage + 1}`}
+              fill
+              sizes="(max-width: 639px) 100vw, (max-width: 1023px) 90vw, 1000px"
+              draggable="false"
+              className="h-full w-full object-contain"
+            />
+          </motion.div>
         </AnimatePresence>
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#101820]/35 via-transparent to-[#101820]/10" />
@@ -121,9 +128,11 @@ export default function DestinationGallery({
                   : "border-transparent opacity-65 hover:opacity-100"
               }`}
             >
-              <img
+              <OptimizedImage
                 src={image}
                 alt=""
+                fill
+                sizes="(max-width: 639px) 72px, 88px"
                 loading="lazy"
                 draggable="false"
                 className="h-full w-full object-cover"

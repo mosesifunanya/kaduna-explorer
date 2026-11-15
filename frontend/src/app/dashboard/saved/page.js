@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
@@ -22,8 +23,10 @@ import {
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/OptimizedImage";
 import useDestinationFavorite from "@/hooks/destination/useDestinationFavorite";
 import { apiRequest } from "@/lib/api";
+import { useAuth } from "@/components/AuthProvider";
 
 function extractEventFavorites(response) {
   const candidates = [
@@ -326,12 +329,14 @@ function SavedDestinationCard({
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[#E8EEE8]">
         {image && !imageFailed ? (
-          <img
+          <OptimizedImage
             src={image}
             alt={name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             loading="lazy"
             onError={() => setImageFailed(true)}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.055]"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.055]"
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#103C2A] via-[#285D43] to-[#718C68] text-white">
@@ -427,12 +432,14 @@ function SavedEventCard({ favorite, index, reduceMotion, onRemove, removing }) {
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[#E8EEE8]">
         {image && !imageFailed ? (
-          <img
+          <OptimizedImage
             src={image}
             alt={title}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             loading="lazy"
             onError={() => setImageFailed(true)}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.055]"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.055]"
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#103C2A] via-[#285D43] to-[#718C68] text-white">
@@ -551,6 +558,8 @@ function EmptyCollection() {
 
 export default function SavedPlacesPage() {
   const reduceMotion = useReducedMotion();
+  const router = useRouter();
+  const { authStatus } = useAuth();
 
   const [eventFavorites, setEventFavorites] = useState([]);
   const [eventFavoritesLoading, setEventFavoritesLoading] = useState(true);
@@ -582,9 +591,24 @@ export default function SavedPlacesPage() {
     }
   }, []);
 
+  // Saved collections are private. Wait for the shared session check before
+  // loading anything, and send guests to login with this page as their return
+  // destination.
   useEffect(() => {
+    if (authStatus === "checking") return;
+
+    if (authStatus === "unauthenticated") {
+      router.replace(
+        `/login?returnTo=${encodeURIComponent("/dashboard/saved")}`,
+      );
+    }
+  }, [authStatus, router]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+
     loadEventFavorites();
-  }, [loadEventFavorites]);
+  }, [authStatus, loadEventFavorites]);
 
   const [selectedFavorite, setSelectedFavorite] = useState(null);
   const [removing, setRemoving] = useState(false);
@@ -709,6 +733,23 @@ export default function SavedPlacesPage() {
         err?.message || "Unable to refresh your saved destinations.",
       );
     }
+  }
+
+  // Do not render private dashboard content while the session is being
+  // checked or after an unauthenticated visitor has been sent to login.
+  if (authStatus !== "authenticated") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F6F8F4] px-5 text-[#183B2A]">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col items-center gap-3 text-center"
+        >
+          <LoaderCircle size={30} className="animate-spin text-[#18543A]" />
+          <p className="text-sm font-semibold">Checking your account...</p>
+        </div>
+      </main>
+    );
   }
 
   return (

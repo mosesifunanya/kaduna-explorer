@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OptimizedImage from "@/components/OptimizedImage";
 
 import {
   ArrowUpRight,
@@ -507,11 +508,12 @@ export default function ExternalPlaceCard({ place = {} }) {
         )}
 
         {showRemoteImage && (
-          <img
+          <OptimizedImage
             src={image}
             alt={name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading="lazy"
-            decoding="async"
             onLoad={() => setImageLoaded(true)}
             onError={() => {
               setImageFailed(true);
@@ -524,9 +526,11 @@ export default function ExternalPlaceCard({ place = {} }) {
         )}
 
         {showCategoryPlaceholder && (
-          <img
+          <OptimizedImage
             src={placeholder}
             alt={`${category} illustration, not an actual photo of ${name}`}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover"
           />

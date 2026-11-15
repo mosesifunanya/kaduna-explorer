@@ -234,24 +234,9 @@ function areDuplicateExternalPlaces(left, right) {
 }
 
 export function useExplorePage() {
-  const [initialDestinations] = useState(() => {
-    const cachedDestinations = getCachedPublicDestinations();
-
-    return Array.isArray(cachedDestinations)
-      ? cachedDestinations
-          .filter(
-            (destination) =>
-              destination &&
-              typeof destination === "object" &&
-              destination.isPublished !== false,
-          )
-          .map((destination, index) => normalizeDestination(destination, index))
-      : null;
-  });
-
-  const [destinations, setDestinations] = useState(
-    () => initialDestinations || [],
-  );
+  // Keep the server render and the browser's first render identical.
+  // Browser-only session cache hydration happens after the initial render.
+  const [destinations, setDestinations] = useState([]);
   const [search, setSearch] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
 
@@ -287,7 +272,7 @@ export function useExplorePage() {
   const [sortBy, setSortBy] = useState("recommended");
   const [showSort, setShowSort] = useState(false);
 
-  const [loading, setLoading] = useState(() => !initialDestinations);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const externalRequestId = useRef(0);
@@ -342,6 +327,24 @@ export function useExplorePage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const cachedDestinations = getCachedPublicDestinations();
+
+    if (!Array.isArray(cachedDestinations)) return;
+
+    const normalized = cachedDestinations
+      .filter(
+        (destination) =>
+          destination &&
+          typeof destination === "object" &&
+          destination.isPublished !== false,
+      )
+      .map((destination, index) => normalizeDestination(destination, index));
+
+    setDestinations(normalized);
+    setLoading(false);
   }, []);
 
   useEffect(() => {

@@ -28,6 +28,8 @@ import {
   X,
 } from "lucide-react";
 
+import OptimizedImage from "@/components/OptimizedImage";
+
 import { apiRequest } from "@/lib/api";
 
 const PAGE_SIZE = 9;
@@ -241,9 +243,11 @@ function EventCard({
       <div className={isEnded ? "select-none blur-[3px]" : ""}>
         <div className="relative h-20 overflow-hidden bg-[#EDF2EA] sm:h-28 lg:h-32">
           {image ? (
-            <img
+            <OptimizedImage
               src={image}
               alt={toDisplayText(event.title, "Event cover")}
+              fill
+              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 25vw"
               loading="lazy"
               className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
             />

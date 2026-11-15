@@ -1,35 +1,13 @@
-const mongoose = require("mongoose");
 require("dotenv").config();
 
 const app = require("./app");
+const connectDB = require("./config/database");
+const mongoose = require("mongoose");
 const { cleanupExpiredEvents } = require("./controllers/eventController");
 
 const PORT = process.env.PORT || 5000;
 const EVENT_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 const SHUTDOWN_TIMEOUT_MS = 10000;
-
-// ============================================
-// DATABASE CONFIGURATION
-// ============================================
-
-if (!process.env.DATABASE) {
-  throw new Error("DATABASE is missing from backend/.env");
-}
-
-if (!process.env.DATABASE_PASSWORD) {
-  throw new Error("DATABASE_PASSWORD is missing from backend/.env");
-}
-
-const DB = process.env.DATABASE.replace(
-  "<PASSWORD>",
-  encodeURIComponent(process.env.DATABASE_PASSWORD),
-);
-
-if (DB.includes("<PASSWORD>")) {
-  throw new Error(
-    "DATABASE still contains <PASSWORD>. Check your database connection string.",
-  );
-}
 
 // ============================================
 // SERVER STARTUP
@@ -149,14 +127,14 @@ const startServer = async () => {
   // ============================================
 
   try {
-    await mongoose.connect(DB);
+    await connectDB();
 
     console.log("MongoDB Atlas connection successful!");
 
     // Run expired-event cleanup immediately.
     await runEventCleanup();
 
-    // Repeat cleanup every 5 minutes.
+    // Repeat cleanup every 5 minutes during local development.
     cleanupInterval = setInterval(() => {
       runEventCleanup();
     }, EVENT_CLEANUP_INTERVAL_MS);

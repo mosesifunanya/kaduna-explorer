@@ -25,6 +25,7 @@ import {
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/OptimizedImage";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -240,9 +241,11 @@ function EventImage({ event }) {
 
   if (image) {
     return (
-      <img
+      <OptimizedImage
         src={image}
         alt={getEventTitle(event)}
+        fill
+        sizes="(max-width: 639px) 104px, (max-width: 1279px) 50vw, 25vw"
         loading="lazy"
         className="h-full w-full object-cover"
       />
@@ -318,9 +321,11 @@ function EventCard({
       >
         <div className="relative aspect-square w-[104px] shrink-0 overflow-hidden bg-[#EAF0F2] sm:aspect-[16/9] sm:w-full">
           {image ? (
-            <img
+            <OptimizedImage
               src={image}
               alt={getEventTitle(event)}
+              fill
+              sizes="(max-width: 639px) 104px, (max-width: 1279px) 50vw, 25vw"
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 group-active:scale-[1.03]"
             />
@@ -565,11 +570,14 @@ function FeaturedEvent({ events = [], now }) {
 
                 <div className="relative min-w-0 overflow-hidden bg-[#D5B72B]">
                   {image ? (
-                    <img
+                    <OptimizedImage
                       src={image}
                       alt={getEventTitle(event)}
-                      loading={event === activeEvent ? "eager" : "lazy"}
-                      className="absolute inset-0 h-full w-full object-cover object-center"
+                      fill
+                      sizes="(max-width: 639px) 46vw, (max-width: 1023px) 48vw, 45vw"
+                      priority={event === activeEvent}
+                      loading={event === activeEvent ? undefined : "lazy"}
+                      className="object-cover object-center"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#063B5C] to-[#092F49]">
@@ -1118,12 +1126,14 @@ export default function EventsPage() {
         {/* HERO */}
         <section className="relative isolate min-h-[250px] overflow-hidden bg-[#063B5C] sm:min-h-[320px] lg:min-h-[370px]">
           <div className="pointer-events-none absolute inset-0">
-            <img
+            <OptimizedImage
               src="/assets/images/backgrounds/events-hero.jpg"
               alt=""
               aria-hidden="true"
-              fetchPriority="high"
-              className="absolute inset-0 h-full w-full object-cover object-[90%_40%] sm:object-[74%_40%] lg:object-[72%_40%]"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-[90%_40%] sm:object-[74%_40%] lg:object-[72%_40%]"
             />
 
             <div

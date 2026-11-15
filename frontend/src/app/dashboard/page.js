@@ -20,6 +20,7 @@ import {
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/OptimizedImage";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -162,9 +163,12 @@ function ProfileAvatar({ user, large = false }) {
 
   if (user?.photo) {
     return (
-      <img
+      <OptimizedImage
         src={user.photo}
         alt={user.name ? `${user.name}'s profile` : "Your profile"}
+        width={large ? 88 : 40}
+        height={large ? 88 : 40}
+        sizes={large ? "(min-width: 640px) 88px, 76px" : "40px"}
         className={`${size} shrink-0 rounded-full border-[4px] border-white bg-white object-cover shadow-[0_5px_18px_rgba(0,0,0,0.12)]`}
       />
     );

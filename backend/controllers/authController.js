@@ -459,9 +459,11 @@ exports.uploadMyPhoto = catchAsync(async (req, res) => {
       (error, result) => {
         if (error) return reject(error);
 
-        if (!result?.secure_url) {
+        if (!result?.secure_url || !result?.public_id) {
           return reject(
-            new Error("Cloudinary did not return a secure image URL."),
+            new Error(
+              "Cloudinary did not return the required profile image details.",
+            ),
           );
         }
 
@@ -472,17 +474,46 @@ exports.uploadMyPhoto = catchAsync(async (req, res) => {
     Readable.from(req.file.buffer).pipe(uploadStream);
   });
 
-  const user = await User.findByIdAndUpdate(
-    req.user._id,
-    { photo: uploadResult.secure_url },
-    {
-      new: true,
-      runValidators: true,
-    },
-  );
+  const deleteCloudinaryImageSafely = async (publicId) => {
+    if (!publicId) return;
+
+    try {
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: "image",
+      });
+    } catch (error) {
+      // A cleanup failure must not undo a successfully saved profile update.
+      console.error("Profile image cleanup failed:", error.message);
+    }
+  };
+
+  const user = await User.findById(req.user._id).select("+photoPublicId");
 
   if (!user) {
+    await deleteCloudinaryImageSafely(uploadResult.public_id);
     return fail(res, 404, "User account could not be found.");
+  }
+
+  const previousPhotoPublicId = user.photoPublicId;
+
+  user.photo = uploadResult.secure_url;
+  user.photoPublicId = uploadResult.public_id;
+
+  try {
+    await user.save();
+  } catch (error) {
+    // Remove the newly uploaded asset if the database update fails.
+    await deleteCloudinaryImageSafely(uploadResult.public_id);
+    throw error;
+  }
+
+  // Only delete a previous Cloudinary asset. External Google profile URLs
+  // have no stored Cloudinary public ID and are therefore left untouched.
+  if (
+    previousPhotoPublicId &&
+    previousPhotoPublicId !== uploadResult.public_id
+  ) {
+    await deleteCloudinaryImageSafely(previousPhotoPublicId);
   }
 
   return sendSuccess(res, 200, "Profile photo updated successfully.", {

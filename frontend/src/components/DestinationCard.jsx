@@ -6,6 +6,7 @@ import { ArrowRight, Images, MapPin } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
 import DestinationFavorite from "@/components/destination-details/DestinationFavorite";
+import OptimizedImage from "@/components/OptimizedImage";
 
 export default function DestinationCard({ destination = {}, href }) {
   const shouldReduceMotion = useReducedMotion();
@@ -91,10 +92,12 @@ export default function DestinationCard({ destination = {}, href }) {
         className="group/image relative block aspect-[4/3] w-full shrink-0 overflow-hidden bg-[#E8EEE8] min-[400px]:aspect-[16/10] sm:aspect-[16/10]"
       >
         {coverImage && !imageFailed ? (
-          <img
+          <OptimizedImage
             src={coverImage}
             alt={name}
-            loading="lazy"
+            fill
+            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
+            quality={75}
             onError={() => setImageFailed(true)}
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover/image:scale-[1.06]"
           />

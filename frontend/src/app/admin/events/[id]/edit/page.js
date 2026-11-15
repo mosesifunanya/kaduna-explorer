@@ -34,6 +34,7 @@ import {
   Link as Link2,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -235,9 +236,13 @@ const textareaClass =
 function ImagePreview({ file, url, onRemove, label }) {
   return (
     <div className="group relative overflow-hidden rounded-xl border border-[#DFE7DD] bg-[#F7F9F7]">
-      <img
+      <OptimizedImage
         src={url}
         alt={file?.name || label}
+        width={640}
+        height={400}
+        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+        loading="lazy"
         className="h-36 w-full object-cover sm:h-40"
       />
 
@@ -1552,9 +1557,13 @@ export default function EditEventPage() {
                 <div className="mt-2">
                   {currentCover ? (
                     <div className="relative overflow-hidden rounded-2xl border border-[#DFE7DD]">
-                      <img
+                      <OptimizedImage
                         src={currentCover}
                         alt={form.title || "Event cover"}
+                        width={1200}
+                        height={720}
+                        sizes="(min-width: 1024px) 1152px, 100vw"
+                        loading="lazy"
                         className="h-56 w-full object-cover sm:h-72"
                       />
 

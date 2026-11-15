@@ -1,4 +1,7 @@
-import { invalidatePublicDestinationCache } from "@/lib/publicDestinationCache";
+import {
+  invalidatePublicDestinationCache,
+  invalidatePublicHomepageCache,
+} from "@/lib/publicDestinationCache";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"
@@ -95,15 +98,26 @@ export async function apiRequest(path, options = {}) {
 
   const method = String(options.method || "GET").toUpperCase();
   const requestPath = normalizedPath.split("?")[0];
+  const isPublicContentMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(
+    method,
+  );
+
   const isDestinationMutation =
-    ["POST", "PUT", "PATCH", "DELETE"].includes(method) &&
-    (requestPath === "destinations" ||
-      requestPath.startsWith("destinations/") ||
+    isPublicContentMutation &&
+    (requestPath === "destinations" || requestPath.startsWith("destinations/"));
+
+  const isHomepageOrReviewMutation =
+    isPublicContentMutation &&
+    (requestPath === "homepage" ||
+      requestPath.startsWith("homepage/") ||
       requestPath === "reviews" ||
       requestPath.startsWith("reviews/"));
 
   if (isDestinationMutation) {
     invalidatePublicDestinationCache();
+    invalidatePublicHomepageCache();
+  } else if (isHomepageOrReviewMutation) {
+    invalidatePublicHomepageCache();
   }
 
   return data;

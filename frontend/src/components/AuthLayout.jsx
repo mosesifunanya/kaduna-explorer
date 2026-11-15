@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin, Compass, CalendarDays } from "lucide-react";
 import { Cormorant_Garamond, Montserrat } from "next/font/google";
 import Header from "@/components/Header";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const crocFont = Cormorant_Garamond({
   subsets: ["latin"],
@@ -30,17 +31,20 @@ export default function AuthLayout({ title, description, children, footer }) {
       <Header />
 
       <main
-        className={`${modernFont.className} relative isolate flex min-h-[calc(100dvh-86px)] w-full items-center justify-center overflow-x-hidden bg-[#09251D] px-2 py-2 sm:px-6 sm:py-4 lg:px-8 lg:py-3`}
+        className={`${modernFont.className} relative isolate flex h-[calc(100dvh-86px)] min-h-0 w-full items-center justify-center overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[#09251D] px-2 pt-3 pb-[90px] sm:px-6 sm:py-4 lg:h-auto lg:min-h-[calc(100dvh-86px)] lg:items-center lg:overflow-y-visible lg:px-8 lg:py-3`}
       >
-        {/* Kaduna background image */}
-        <div
-          aria-hidden="true"
-          className="fixed inset-0 -z-30 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage:
-              "url('/assets/images/backgrounds/kaduna-hero.png')",
-          }}
-        />
+        {/* Optimized Kaduna background image */}
+        <div aria-hidden="true" className="fixed inset-0 -z-30">
+          <OptimizedImage
+            src="/assets/images/backgrounds/kaduna-hero.png"
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            quality={75}
+            className="object-cover object-center"
+          />
+        </div>
 
         {/* Cinematic background overlay */}
         <div
@@ -112,15 +116,15 @@ export default function AuthLayout({ title, description, children, footer }) {
               isSignup
                 ? "max-w-[330px] sm:max-w-[390px] lg:max-w-[390px] xl:max-w-[410px]"
                 : "max-w-[320px] sm:max-w-[370px] lg:max-w-[360px] xl:max-w-[380px]"
-            } -top-3 sm:-top-6 lg:top-0 lg:-translate-x-50`}
+            } top-0 lg:top-0 lg:-translate-x-50`}
           >
             <div className="relative isolate w-full min-w-0 overflow-hidden rounded-[17px] border border-white/80 bg-[#FFFDF8]/95 shadow-[0_20px_65px_rgba(0,0,0,0.27)] backdrop-blur-xl sm:rounded-[22px]">
               {/* Card content */}
               <div
                 className={`relative z-10 min-w-0 ${
                   isSignup
-                    ? "px-3 py-2 sm:px-4 sm:py-2.5 lg:px-4 lg:py-2"
-                    : "px-3 py-2.5 sm:px-5 sm:py-4 lg:px-4 lg:py-3"
+                    ? "px-2.5 py-1 sm:px-4 sm:py-2.5 lg:px-4 lg:py-2"
+                    : "px-3 py-1.5 sm:px-5 sm:py-4 lg:px-4 lg:py-3"
                 }`}
               >
                 {/* Official Kaduna Explorer logo */}
@@ -136,8 +140,8 @@ export default function AuthLayout({ title, description, children, footer }) {
                     alt="Kaduna Explorer"
                     className={`w-auto object-contain ${
                       isSignup
-                        ? "max-w-[68px] h-[46px] sm:h-[52px] lg:h-[50px]"
-                        : "max-w-[70px] h-[52px] sm:h-[66px] lg:h-[62px]"
+                        ? "max-w-[64px] h-[38px] sm:max-w-[68px] sm:h-[52px] lg:h-[50px]"
+                        : "max-w-[70px] h-[48px] sm:h-[66px] lg:h-[62px]"
                     }`}
                   />
                 </Link>
@@ -148,7 +152,7 @@ export default function AuthLayout({ title, description, children, footer }) {
                     <h1
                       className={`font-extrabold leading-tight tracking-[-0.035em] text-[#103C2A] ${
                         isSignup
-                          ? "text-[18px] sm:text-[20px] lg:text-[19px]"
+                          ? "text-[17px] sm:text-[20px] lg:text-[19px]"
                           : "text-[19px] sm:text-[22px] lg:text-[21px]"
                       }`}
                     >
@@ -160,7 +164,7 @@ export default function AuthLayout({ title, description, children, footer }) {
                     <p
                       className={`mx-auto font-medium leading-[1.4] text-[#536B87] ${
                         isSignup
-                          ? "mt-0.5 max-w-[270px] text-[9px] sm:text-[10px]"
+                          ? "mt-0 max-w-[270px] text-[8px] sm:mt-0.5 sm:text-[10px]"
                           : "mt-1 max-w-[260px] text-[10px] sm:text-[12px]"
                       }`}
                     >
@@ -173,7 +177,7 @@ export default function AuthLayout({ title, description, children, footer }) {
                 <div
                   className={`relative z-10 w-full min-w-0 overflow-hidden ${
                     isSignup
-                      ? "mt-2 sm:mt-2.5 lg:mt-2"
+                      ? "mt-1.5 sm:mt-2.5 lg:mt-2"
                       : "mt-2.5 sm:mt-4 lg:mt-3"
                   } [&_*]:max-w-full`}
                 >
@@ -185,7 +189,7 @@ export default function AuthLayout({ title, description, children, footer }) {
                   <div
                     className={`relative z-10 border-t border-[#E8EDE8] text-center text-[15px] leading-5 text-[#63758A] sm:text-[12px] ${
                       isSignup
-                        ? "mt-2 pt-1.5 sm:mt-2.5 sm:pt-2"
+                        ? "mt-1.5 pt-1 sm:mt-2.5 sm:pt-2"
                         : "mt-2 pt-1.5 sm:mt-3 sm:pt-2.5"
                     }`}
                   >

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Script from "next/script";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Eye, EyeOff, Mail } from "lucide-react";
@@ -43,6 +43,16 @@ function getSafeReturnTo(value, fallback = "/") {
 export default function LoginPage() {
   const router = useRouter();
   const googleButtonRef = useRef(null);
+  const googleInitTimerRef = useRef(null);
+  const googleInitAttemptsRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (googleInitTimerRef.current) {
+        window.clearTimeout(googleInitTimerRef.current);
+      }
+    };
+  }, []);
 
   // Use the existing global authentication provider.
   const { setAuthenticatedUser } = useAuth();
@@ -198,47 +208,66 @@ export default function LoginPage() {
     }
   }
 
-  // Initialize Google's official sign-in button.
+  // Initialize Google's official sign-in button after the SDK and
+  // its container are both ready. Retry briefly instead of requiring refresh.
   function initializeGoogle() {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const buttonContainer = googleButtonRef.current;
 
     if (!clientId) {
       setError("Google sign-in is not configured. Please try again later.");
       return;
     }
 
-    if (!window.google?.accounts?.id || !googleButtonRef.current) {
-      setError("Google sign-in could not be loaded. Please refresh the page.");
+    if (
+      !window.google?.accounts?.id ||
+      !buttonContainer ||
+      buttonContainer.getBoundingClientRect().width === 0
+    ) {
+      if (googleInitAttemptsRef.current < 20) {
+        googleInitAttemptsRef.current += 1;
+        googleInitTimerRef.current = window.setTimeout(initializeGoogle, 150);
+        return;
+      }
+
+      setError("Google sign-in could not be loaded. Please try again.");
+      googleInitAttemptsRef.current = 0;
       return;
     }
 
-    googleButtonRef.current.innerHTML = "";
+    if (googleInitTimerRef.current) {
+      window.clearTimeout(googleInitTimerRef.current);
+      googleInitTimerRef.current = null;
+    }
+    googleInitAttemptsRef.current = 0;
+
+    buttonContainer.innerHTML = "";
 
     window.google.accounts.id.initialize({
       client_id: clientId,
       callback: handleGoogleCredential,
     });
 
-    window.google.accounts.id.renderButton(googleButtonRef.current, {
+    window.google.accounts.id.renderButton(buttonContainer, {
       type: "standard",
       theme: "outline",
       size: "large",
       text: "continue_with",
       shape: "rectangular",
       logo_alignment: "center",
-      width: googleButtonRef.current.offsetWidth,
+      width: Math.floor(buttonContainer.getBoundingClientRect().width),
     });
   }
 
   const inputClass =
-    "h-[46px] w-full rounded-xl border border-[#D7E0E9] bg-white/90 px-4 text-sm text-[#183451] outline-none transition placeholder:text-[#91A0B3] hover:border-[#B7C7D6] focus:border-[#087747] focus:ring-4 focus:ring-[#087747]/10 disabled:cursor-not-allowed disabled:opacity-70";
+    "h-[40px] sm:h-[46px] w-full rounded-xl border border-[#D7E0E9] bg-white/90 px-4 text-sm text-[#183451] outline-none transition placeholder:text-[#91A0B3] hover:border-[#B7C7D6] focus:border-[#087747] focus:ring-4 focus:ring-[#087747]/10 disabled:cursor-not-allowed disabled:opacity-70";
 
   return (
     <>
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
-        onLoad={initializeGoogle}
+        onReady={initializeGoogle}
         onError={() =>
           setError("Unable to load Google sign-in. Please try again.")
         }
@@ -273,12 +302,12 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3.5">
           {/* Email */}
           <div>
             <label
               htmlFor="login-email"
-              className="mb-1.5 block text-sm font-bold text-[#183451]"
+              className="mb-1 sm:mb-1.5 block text-[12px] sm:text-sm font-bold text-[#183451]"
             >
               Email address
             </label>
@@ -311,7 +340,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="login-password"
-              className="mb-1.5 block text-sm font-bold text-[#183451]"
+              className="mb-1 sm:mb-1.5 block text-[12px] sm:text-sm font-bold text-[#183451]"
             >
               Password
             </label>
@@ -371,7 +400,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-[#FFBD4A] px-5 text-base font-extrabold text-[#103C2A] shadow-[0_5px_14px_rgba(210,151,25,0.18)] transition hover:-translate-y-0.5 hover:bg-[#FFD16D] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087747] focus-visible:ring-offset-2 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-[42px] sm:h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-[#FFBD4A] px-5 text-base font-extrabold text-[#103C2A] shadow-[0_5px_14px_rgba(210,151,25,0.18)] transition hover:-translate-y-0.5 hover:bg-[#FFD16D] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087747] focus-visible:ring-offset-2 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>

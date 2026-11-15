@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -1173,9 +1174,12 @@ export default function EditDestinationPage() {
                     <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
                       <div className="relative flex flex-col items-center">
                         <div className="h-14 w-14 overflow-hidden rounded-full border-[3px] border-white bg-white shadow-xl ring-2 ring-[#FFBD4A] sm:h-20 sm:w-20">
-                          <img
+                          <OptimizedImage
                             src={coverPreview}
                             alt={`${form.name || "Destination"} cover preview`}
+                            width={80}
+                            height={80}
+                            sizes="80px"
                             className="h-full w-full object-cover"
                           />
                         </div>
@@ -1265,9 +1269,12 @@ export default function EditDestinationPage() {
             {coverPreview ? (
               <div className="flex flex-col items-center gap-3">
                 <div className="flex min-h-52 w-full items-center justify-center overflow-hidden rounded-lg bg-white p-2 sm:min-h-[360px] sm:p-3">
-                  <img
+                  <OptimizedImage
                     src={coverPreview}
                     alt="Destination cover"
+                    width={880}
+                    height={440}
+                    sizes="(min-width: 640px) 880px, 100vw"
                     className="max-h-[280px] w-full object-contain sm:max-h-[440px]"
                   />
                 </div>
@@ -1346,9 +1353,12 @@ export default function EditDestinationPage() {
                     className="min-w-0 overflow-hidden rounded-xl border border-[#E1E7DD] bg-white p-1.5 sm:p-2"
                   >
                     <div className="flex h-24 items-center justify-center overflow-hidden rounded-lg bg-[#F5F7F2] sm:h-28">
-                      <img
+                      <OptimizedImage
                         src={image.url}
                         alt={image.alt || "Destination gallery image"}
+                        width={320}
+                        height={224}
+                        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                         className="max-h-full max-w-full object-contain"
                       />
                     </div>

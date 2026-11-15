@@ -16,6 +16,7 @@ import {
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/OptimizedImage";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -346,9 +347,12 @@ export default function AccountSettingsPage() {
                 <div className="relative">
                   <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#EAF3E9] bg-[#FFBD4A] text-2xl font-extrabold text-[#103C2A] sm:h-28 sm:w-28 sm:text-3xl">
                     {displayedPhoto ? (
-                      <img
+                      <OptimizedImage
                         src={displayedPhoto}
                         alt={`${profile.name || "Your"} profile`}
+                        width={112}
+                        height={112}
+                        sizes="112px"
                         className="h-full w-full object-cover"
                       />
                     ) : (

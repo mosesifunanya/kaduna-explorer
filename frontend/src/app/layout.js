@@ -10,14 +10,14 @@ import MobileBottomNavigation from "@/components/MobileBottomNavigation";
 const playfair = localFont({
   src: "./fonts/playfair-display.woff2",
   variable: "--font-playfair",
-  display: "swap",
+  display: "optional",
   weight: "500 800",
 });
 
 const dmSans = localFont({
   src: "./fonts/dm-sans.woff2",
   variable: "--font-inter",
-  display: "swap",
+  display: "optional",
   weight: "400 800",
 });
 
@@ -29,7 +29,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <Script
           id="ke-native-scroll-restoration"

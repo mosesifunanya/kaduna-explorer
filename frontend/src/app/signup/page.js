@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Script from "next/script";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -41,6 +41,16 @@ function getSafeReturnTo(value, fallback = "/") {
 export default function SignupPage() {
   const router = useRouter();
   const googleButtonRef = useRef(null);
+  const googleInitTimerRef = useRef(null);
+  const googleInitAttemptsRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (googleInitTimerRef.current) {
+        window.clearTimeout(googleInitTimerRef.current);
+      }
+    };
+  }, []);
 
   const { setAuthenticatedUser } = useAuth();
 
@@ -217,42 +227,62 @@ export default function SignupPage() {
     }
   }
 
-  // Initialize Google's official sign-in button.
+  // Initialize Google's official sign-in button after the SDK and
+  // its container are both ready. Retry briefly instead of requiring refresh.
   function initializeGoogle() {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const buttonContainer = googleButtonRef.current;
 
     if (!clientId) {
       setError("Google sign-in is not configured. Please try again later.");
       return;
     }
 
-    if (!window.google?.accounts?.id || !googleButtonRef.current) {
-      setError("Google sign-in could not be loaded. Please refresh the page.");
+    if (
+      !window.google?.accounts?.id ||
+      !buttonContainer ||
+      buttonContainer.getBoundingClientRect().width === 0
+    ) {
+      if (googleInitAttemptsRef.current < 20) {
+        googleInitAttemptsRef.current += 1;
+        googleInitTimerRef.current = window.setTimeout(initializeGoogle, 150);
+        return;
+      }
+
+      setError("Google sign-in could not be loaded. Please try again.");
+      googleInitAttemptsRef.current = 0;
       return;
     }
 
-    googleButtonRef.current.innerHTML = "";
+    if (googleInitTimerRef.current) {
+      window.clearTimeout(googleInitTimerRef.current);
+      googleInitTimerRef.current = null;
+    }
+    googleInitAttemptsRef.current = 0;
+
+    buttonContainer.innerHTML = "";
 
     window.google.accounts.id.initialize({
       client_id: clientId,
       callback: handleGoogleCredential,
     });
 
-    window.google.accounts.id.renderButton(googleButtonRef.current, {
+    window.google.accounts.id.renderButton(buttonContainer, {
       type: "standard",
       theme: "outline",
       size: "large",
       text: "continue_with",
       shape: "rectangular",
       logo_alignment: "center",
-      width: googleButtonRef.current.offsetWidth,
+      width: Math.floor(buttonContainer.getBoundingClientRect().width),
     });
   }
 
   const inputClass =
-    "h-[46px] w-full rounded-xl border border-[#D7E0E9] bg-white/90 px-4 text-sm text-[#183451] outline-none transition placeholder:text-[#91A0B3] hover:border-[#B7C7D6] focus:border-[#087747] focus:ring-4 focus:ring-[#087747]/10 disabled:cursor-not-allowed disabled:opacity-70";
+    "h-[40px] sm:h-[46px] w-full rounded-xl border border-[#D7E0E9] bg-white/90 px-4 text-sm text-[#183451] outline-none transition placeholder:text-[#91A0B3] hover:border-[#B7C7D6] focus:border-[#087747] focus:ring-4 focus:ring-[#087747]/10 disabled:cursor-not-allowed disabled:opacity-70";
 
-  const labelClass = "mb-1.5 block text-sm font-bold text-[#183451]";
+  const labelClass =
+    "mb-1 sm:mb-1.5 block text-[12px] sm:text-sm font-bold text-[#183451]";
 
   return (
     <>
@@ -404,7 +434,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-[#FFBD4A] px-5 text-base font-extrabold text-[#103C2A] shadow-[0_5px_14px_rgba(210,151,25,0.18)] transition hover:-translate-y-0.5 hover:bg-[#FFD16D] hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087747] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-[42px] sm:h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-[#FFBD4A] px-5 text-base font-extrabold text-[#103C2A] shadow-[0_5px_14px_rgba(210,151,25,0.18)] transition hover:-translate-y-0.5 hover:bg-[#FFD16D] hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087747] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>

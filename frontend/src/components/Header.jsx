@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { navigationLinks } from "@/lib/homeData";
+import OptimizedImage from "@/components/OptimizedImage";
 
 import { apiRequest } from "@/lib/api";
 
@@ -286,9 +287,12 @@ export default function Header({ activeNav }) {
 
   function ProfileAvatar({ size = "h-9 w-9" }) {
     return user?.photo ? (
-      <img
+      <OptimizedImage
         src={user.photo}
         alt={`${user.name || "User"} profile`}
+        width={size === "h-11 w-11" ? 44 : 36}
+        height={size === "h-11 w-11" ? 44 : 36}
+        sizes={size === "h-11 w-11" ? "44px" : "36px"}
         className={`${size} block shrink-0 rounded-full object-cover`}
       />
     ) : (
@@ -348,12 +352,13 @@ export default function Header({ activeNav }) {
           }}
           className="shrink-0"
         >
-          <img
+          <OptimizedImage
             src="/assets/brand/logo-horizontal.png"
             alt="Kaduna Explorer"
             width={2020}
             height={778}
-            fetchPriority="high"
+            sizes="(min-width: 1024px) 175px, (min-width: 640px) 155px, 125px"
+            priority
             className="block h-auto w-[125px] object-contain sm:w-[155px] lg:w-[175px]"
           />
         </Link>

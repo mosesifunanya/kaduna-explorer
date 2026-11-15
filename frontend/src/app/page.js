@@ -1,8 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import Link from "next/link";
 
@@ -15,9 +23,10 @@ import {
   MapPinned,
   Search,
   Sparkles,
-  RefreshCw,
   Star,
   Mountain,
+  CalendarDays,
+  Landmark,
   Users,
   Store,
   Plus,
@@ -37,11 +46,90 @@ import {
 } from "@/lib/homeData";
 
 import { apiRequest } from "@/lib/api";
+import {
+  getCachedHomepageData,
+  setCachedHomepageData,
+} from "@/lib/publicDestinationCache";
 
 import { normalizeDestination } from "@/lib/destinationUtils";
 
 import DestinationFavorite from "@/components/destination-details/DestinationFavorite";
 import { useRouteTransition } from "@/components/RouteTransitionProvider";
+
+function getCloudinaryImageUrl(src, width) {
+  if (typeof src !== "string" || !src.trim()) return src;
+
+  try {
+    const url = new URL(src);
+
+    if (
+      url.hostname !== "res.cloudinary.com" ||
+      !url.pathname.includes("/image/upload/")
+    ) {
+      return src;
+    }
+
+    const uploadMarker = "/image/upload/";
+    const markerIndex = url.pathname.indexOf(uploadMarker);
+    const pathAfterUpload = url.pathname.slice(
+      markerIndex + uploadMarker.length,
+    );
+    const firstSegment = pathAfterUpload.split("/")[0];
+
+    // Avoid adding a second transformation to URLs already transformed.
+    if (/^(?:f_|q_|w_|h_|c_|dpr_|g_|ar_|e_|fl_)/.test(firstSegment)) {
+      return src;
+    }
+
+    url.pathname = url.pathname.replace(
+      uploadMarker,
+      `${uploadMarker}f_auto,q_auto,w_${width},c_limit/`,
+    );
+
+    return url.toString();
+  } catch {
+    return src;
+  }
+}
+
+function getCloudinaryImageSrcSet(src) {
+  if (typeof src !== "string" || !src.trim()) return undefined;
+
+  try {
+    const url = new URL(src);
+    const uploadMarker = "/image/upload/";
+    const markerIndex = url.pathname.indexOf(uploadMarker);
+
+    if (url.hostname !== "res.cloudinary.com" || markerIndex === -1) {
+      return undefined;
+    }
+
+    const pathAfterUpload = url.pathname.slice(
+      markerIndex + uploadMarker.length,
+    );
+    const firstSegment = pathAfterUpload.split("/")[0];
+
+    // Keep URLs with existing transformations unchanged.
+    if (/^(?:f_|q_|w_|h_|c_|dpr_|g_|ar_|e_|fl_)/.test(firstSegment)) {
+      return undefined;
+    }
+
+    const widths = [320, 480, 640, 750, 828, 960, 1080, 1200, 1440, 1920];
+
+    return widths
+      .map((width) => {
+        const candidate = new URL(src);
+        candidate.pathname = candidate.pathname.replace(
+          uploadMarker,
+          `${uploadMarker}f_auto,q_auto,w_${width},c_limit/`,
+        );
+        return `${candidate.toString()} ${width}w`;
+      })
+      .join(", ");
+  } catch {
+    return undefined;
+  }
+}
 
 function extractHomepage(response) {
   return (
@@ -157,13 +245,28 @@ export default function Home() {
   const [aboutGalleryWidth, setAboutGalleryWidth] = useState(0);
   /* SCROLL REVEAL */
 
-  useEffect(() => {
-    const nodes = document.querySelectorAll(".home-reveal");
+  // Enable reveal styling before the browser paints hydrated content. Elements
+  // already in the viewport are shown immediately; off-screen elements reveal
+  // as the visitor scrolls. Without JavaScript, homepage content stays visible.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("home-reveal-ready");
 
-    if (!("IntersectionObserver" in window)) {
+    return () => root.classList.remove("home-reveal-ready");
+  }, []);
+
+  useLayoutEffect(() => {
+    const nodes = document.querySelectorAll(
+      "#home .home-reveal:not(.is-visible)",
+    );
+
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (reducedMotion || !("IntersectionObserver" in window)) {
       nodes.forEach((node) => node.classList.add("is-visible"));
-
-      return;
+      return undefined;
     }
 
     const observer = new IntersectionObserver(
@@ -171,20 +274,26 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-visible");
-
             observer.unobserve(entry.target);
           }
         });
       },
-
       {
-        threshold: 0.12,
-
-        rootMargin: "0px 0px -35px 0px",
+        threshold: 0.08,
+        rootMargin: "0px 0px -24px 0px",
       },
     );
 
-    nodes.forEach((node) => observer.observe(node));
+    nodes.forEach((node) => {
+      const rect = node.getBoundingClientRect();
+      const alreadyInView = rect.top < window.innerHeight && rect.bottom > 0;
+
+      if (alreadyInView) {
+        node.classList.add("is-visible");
+      } else {
+        observer.observe(node);
+      }
+    });
 
     return () => observer.disconnect();
   }, [homepage, destinations, reviews]);
@@ -199,6 +308,7 @@ export default function Home() {
 
       if (content && typeof content === "object") {
         setHomepage(content);
+        setCachedHomepageData({ homepage: content });
       }
     } catch (error) {
       console.error("Failed to load homepage content:", error);
@@ -210,8 +320,6 @@ export default function Home() {
   /* LOAD FEATURED DESTINATIONS, WITH A PUBLISHED-DESTINATION FALLBACK */
 
   const loadDestinations = useCallback(async () => {
-    setDestinationsLoading(true);
-
     setDestinationsError("");
 
     try {
@@ -253,7 +361,9 @@ export default function Home() {
 
         .map((item, index) => normalizeDestination(item, index));
 
-      setDestinations(normalized.slice(0, 4));
+      const homepageDestinations = normalized.slice(0, 4);
+      setDestinations(homepageDestinations);
+      setCachedHomepageData({ destinations: homepageDestinations });
     } catch (error) {
       console.error("Failed to load homepage destinations:", error);
 
@@ -266,37 +376,69 @@ export default function Home() {
   /* LOAD REAL VISITOR REVIEWS */
 
   const loadReviews = useCallback(async () => {
-    setReviewsLoading(true);
-
     try {
       const response = await apiRequest("reviews?page=1&limit=20&sort=newest");
 
       const records = extractList(response, "reviews");
 
-      setReviews(records.filter((item) => item && item.review));
+      const homepageReviews = records.filter((item) => item && item.review);
+      const homepageReviewStats = response?.data?.statistics ||
+        response?.statistics || {
+          averageRating: 0,
+          totalReviews: 0,
+        };
 
-      setReviewStats(
-        response?.data?.statistics ||
-          response?.statistics || {
-            averageRating: 0,
-
-            totalReviews: 0,
-          },
-      );
+      setReviews(homepageReviews);
+      setReviewStats(homepageReviewStats);
+      setCachedHomepageData({
+        reviews: homepageReviews,
+        reviewStats: homepageReviewStats,
+      });
     } catch (error) {
-      console.error("Failed to load homepage reviews:", error);
-
-      setReviews([]);
+      // Keep previously cached reviews visible if the background refresh fails.
+      console.error("Failed to refresh homepage reviews:", error);
     } finally {
       setReviewsLoading(false);
     }
   }, []);
 
+  // Read saved homepage data before the first hydrated browser paint. This
+  // prevents returning visitors from seeing empty sections while React waits
+  // for a normal effect to run.
+  useLayoutEffect(() => {
+    const cachedHomepageData = getCachedHomepageData();
+    if (!cachedHomepageData) return;
+
+    if (
+      cachedHomepageData.homepage &&
+      typeof cachedHomepageData.homepage === "object"
+    ) {
+      setHomepage(cachedHomepageData.homepage);
+      setHomepageLoading(false);
+    }
+
+    if (Array.isArray(cachedHomepageData.destinations)) {
+      setDestinations(cachedHomepageData.destinations);
+      setDestinationsLoading(false);
+    }
+
+    if (Array.isArray(cachedHomepageData.reviews)) {
+      setReviews(cachedHomepageData.reviews);
+      setReviewsLoading(false);
+    }
+
+    if (
+      cachedHomepageData.reviewStats &&
+      typeof cachedHomepageData.reviewStats === "object"
+    ) {
+      setReviewStats(cachedHomepageData.reviewStats);
+    }
+  }, []);
+
   useEffect(() => {
+    // Refresh quietly in the background; cached content stays on screen.
     loadHomepage();
-
     loadDestinations();
-
     loadReviews();
   }, [loadHomepage, loadDestinations, loadReviews]);
 
@@ -546,427 +688,32 @@ export default function Home() {
           }
 
         }
-
-
-
-        .home-reveal {
-
-          opacity: 0;
-
-          transform: translate3d(0, 24px, 0);
-
-          transition:
-
-            opacity 780ms cubic-bezier(0.22, 1, 0.36, 1),
-
-            transform 780ms cubic-bezier(0.22, 1, 0.36, 1);
-
-          transition-delay: var(--reveal-delay, 0ms);
-
-        }
-
-
-
-        .home-reveal.is-visible {
-
+        /* Reveal is enabled only after hydration; no-JS content stays visible. */
+        #home .home-reveal {
           opacity: 1;
-
-          transform: translate3d(0, 0, 0);
-
-        }
-
-
-
-        .home-hero {
-          position: relative;
-          min-height: calc(100svh - 76px);
-          background: #103C2A;
-        }
-
-        .home-hero > img {
           transform: none;
-          animation: none;
-          object-fit: cover;
-          object-position: center center;
         }
-
-        .home-hero-content {
-          min-height: calc(100svh - 76px);
-          padding-top: 22px;
-          padding-bottom: 142px;
+        html.home-reveal-ready #home .home-reveal:not(.is-visible) {
+          opacity: 0;
+          transform: translate3d(0, 18px, 0);
         }
-
-        .home-hero-copy {
-          max-width: 1120px;
-          text-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
-        }
-
-        .home-hero-copy h1 {
-          max-width: 1120px;
-          font-size: clamp(2.85rem, 4.25vw, 4.65rem);
-          line-height: 0.94;
-        }
-
-        .home-hero-script {
-          display: block;
-          width: fit-content;
-          margin-top: 0.02em;
-          font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
-          font-size: clamp(2.8rem, 5.1vw, 4.8rem);
-          font-style: italic;
-          font-weight: 700;
-          letter-spacing: -0.075em;
-          line-height: 0.92;
-          color: #FFC928;
-          transform: rotate(-2deg);
-          text-shadow: 0 3px 18px rgba(0, 0, 0, 0.2);
-        }
-
-        .home-hero-final-line {
-          display: flex;
-          align-items: baseline;
-          flex-wrap: wrap;
-          column-gap: 0.2em;
-          row-gap: 0;
-          margin-top: 0.08em;
-          line-height: 1.02;
-        }
-
-        .home-hero-croc-script {
-          position: relative;
-          display: inline-block;
-          margin-left: 0;
-          padding-bottom: 0.12em;
-          color: #FFC928;
-          font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
-          font-size: 0.88em;
-          font-style: italic;
-          font-weight: 700;
-          letter-spacing: -0.075em;
-          transform: rotate(-2deg);
-          white-space: nowrap;
-        }
-
-        .home-hero-scribble {
-          display: block;
-          width: min(88%, 390px);
-          height: 17px;
-          margin: -1px 0 5px 2px;
-          overflow: visible;
-        }
-
-        .home-hero-croc-scribble {
-          position: absolute;
-          right: 0;
-          bottom: -0.02em;
-          left: 0;
-          display: block;
-          width: 100%;
-          height: 12px;
-          margin: 0;
-          overflow: visible;
-          pointer-events: none;
-        }
-
-        .home-hero-cta {
-          min-height: 86px;
-          border: 2px solid #0F3D2E;
-          outline: 2px solid #F8C900;
-          outline-offset: 3px;
-          background: #FFC900;
-          color: #0F3D2E;
-          box-shadow:
-            inset 0 0 0 2px rgba(255, 255, 255, 0.28),
-            0 10px 28px rgba(0, 0, 0, 0.2);
+        html.home-reveal-ready #home .home-reveal {
           transition:
-            transform 240ms ease,
-            background-color 240ms ease,
-            box-shadow 240ms ease;
+            opacity 650ms ease,
+            transform 650ms cubic-bezier(0.2, 0.75, 0.25, 1);
+          transition-delay: var(--reveal-delay, 0ms);
+          will-change: opacity, transform;
         }
-
-        .home-hero-cta-icon {
-          display: inline-flex;
-          width: clamp(58px, 6vw, 76px);
-          height: clamp(58px, 6vw, 76px);
-          flex: 0 0 clamp(58px, 6vw, 76px);
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          border: 6px solid #FFFFFF;
-          border-radius: 50%;
-          background: #FFF3B0;
-          color: #0F3D2E;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-        }
-
-        .home-hero-cta-icon svg {
-          width: 72%;
-          height: 72%;
-          stroke-width: 2.8;
-        }
-
-        .home-hero-cta > svg {
-          width: clamp(28px, 3.2vw, 40px);
-          height: clamp(28px, 3.2vw, 40px);
-          flex: 0 0 auto;
-          color: #0F3D2E;
-        }
-
-        .home-hero-cta:hover {
-          transform: translateY(-3px);
-          background: #FFD633;
-          box-shadow:
-            inset 0 0 0 2px rgba(255, 255, 255, 0.32),
-            0 15px 32px rgba(0, 0, 0, 0.26);
-        }
-
-        .home-hero-shortcuts {
-          position: absolute;
-          right: 0;
-          bottom: 50px;
-          left: 0;
-          z-index: 3;
-          padding: 10px 0 16px;
-          background: linear-gradient(180deg, transparent, rgba(3, 25, 19, 0.18));
-        }
-
-        .home-hero-shortcut {
-          box-sizing: border-box;
-          width: 104px !important;
-          min-width: 104px !important;
-          max-width: 104px !important;
-          height: 64px !important;
-          min-height: 64px !important;
-          max-height: 64px !important;
-          padding: 5px 6px !important;
-          gap: 4px !important;
-          flex: 0 0 104px;
-          border: 1px solid rgba(255, 255, 255, 0.52);
-          border-radius: 15px;
-          background: rgba(0, 0, 0, 0.34);
-          color: #FFFFFF;
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
-          transition: transform 260ms ease, border-color 260ms ease, background-color 260ms ease;
-        }
-
-        .home-hero-shortcut:hover {
-          transform: translateY(-4px);
-          border-color: #FFC928;
-          background: rgba(0, 0, 0, 0.5);
-        }
-
-        @media (max-width: 1023px) {
-          .home-hero-final-line {
-            display: block;
-          }
-
-          .home-hero-croc-script {
-            margin-left: 0.04em;
-          }
-        }
-
-        @media (max-width: 767px) {
-          #home .home-hero {
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-          }
-
-          .home-hero-content {
-            flex: 0 0 auto;
-            min-height: 0;
-            padding-top: 22px;
-            padding-bottom: 0;
-          }
-
-          .home-hero-copy h1 {
-            font-size: clamp(2.45rem, 9.6vw, 3.65rem);
-            line-height: 0.98;
-          }
-
-          .home-hero-script {
-            font-size: clamp(2.55rem, 10.5vw, 4rem);
-          }
-
-          .home-hero-final-line {
-            max-width: 100%;
-          }
-
-          .home-hero-croc-script {
-            margin-left: 0.04em;
-            font-size: 0.82em;
-          }
-
-          .home-hero-scribble {
-            width: min(88%, 300px);
-          }
-
-          .home-hero-shortcuts {
-            position: relative;
-            right: auto;
-            bottom: auto;
-            left: auto;
-            flex: 0 0 auto;
-            margin-top: 22px;
-            padding: 0 0 26px;
-            background: none;
-            transform: none;
-          }
-
-          .home-hero-shortcuts .home-content {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            width: 80%;
-    max-width: 360px;
-    margin-inline: auto;
-    padding-inline: 0 !important;
-            grid-template-rows: repeat(2, 60px);
-            align-items: stretch;
-            column-gap: 8px;
-            row-gap: 14px;
-          }
-
-          .home-hero-shortcut:nth-child(-n + 3) {
-            grid-column: span 2;
-          }
-
-          .home-hero-shortcut:nth-child(4) {
-            grid-column: 2 / span 2;
-            margin-top: 0;
-            align-self: stretch;
-          }
-
-          .home-hero-shortcut:nth-child(5) {
-            grid-column: 4 / span 2;
-            margin-top: 0;
-            align-self: stretch;
-          }
-
-          .home-hero-shortcut {
-            box-sizing: border-box;
-            width: 100% !important;
-            min-width: 0 !important;
-            max-width: none !important;
-            height: 60px !important;
-            min-height: 60px !important;
-            max-height: 60px !important;
-            flex: initial;
-            gap: 2px !important;
-            padding: 3px 2px !important;
-            border: 1px solid rgba(18, 24, 32, 0.08);
-            border-radius: 17px;
-            background: #FFFFFF;
-            color: #171717;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-            text-shadow: none;
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-            transition: transform 220ms ease, box-shadow 220ms ease;
-          }
-
-          .home-hero-shortcut:hover {
-            transform: none;
-            border-color: rgba(18, 24, 32, 0.08);
-            background: #FFFFFF;
-            box-shadow: 0 7px 16px rgba(0, 0, 0, 0.24);
-          }
-
-          .home-hero-shortcut svg {
-            width: 22px;
-            height: 22px;
-            stroke-width: 2.5;
-          }
-
-          .home-hero-shortcut:nth-child(1) svg {
-            color: #269B50 !important;
-          }
-
-          .home-hero-shortcut:nth-child(2) svg {
-            color: #8428D8 !important;
-          }
-
-          .home-hero-shortcut:nth-child(3) svg {
-            color: #F07800 !important;
-          }
-
-          .home-hero-shortcut:nth-child(4) svg {
-            color: #2563D9 !important;
-          }
-
-          .home-hero-shortcut:nth-child(5) svg {
-            color: #E91E63 !important;
-          }
-
-          .home-hero-shortcut span {
-            color: #171717;
-            font-size: 11px;
-            font-weight: 800;
-            line-height: 1.1;
-            letter-spacing: -0.02em;
-          }
-        }
-
-        #home .home-hero-cta {
-  width: fit-content;
-  min-width: 0 !important;
-  min-height: 58px;
-  gap: 10px;
-  padding: 7px 12px;
-  font-size: 13px;
-}
-
-#home .home-hero-cta-icon {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-  border-width: 4px;
-}
-
-#home .home-hero-cta > svg {
-  width: 23px;
-  height: 23px;
-}
-        @media (max-width: 380px) {
-          .home-hero-content {
-            padding-inline: 16px;
-          }
-        }
-
-        .home-categories {
-
-          background-color: #ffc900;
-
-          background-image:
-
-            radial-gradient(
-
-              ellipse at 18% 48%,
-
-              rgba(255, 222, 70, 0.72),
-
-              transparent 42%
-
-            ),
-
-            radial-gradient(
-
-              ellipse at 88% 8%,
-
-              rgba(255, 229, 100, 0.42),
-
-              transparent 36%
-
-            ),
-
-            linear-gradient(115deg, #ffd000 0%, #ffc400 54%, #ffd21a 100%);
-
+        html.home-reveal-ready #home .home-reveal.is-visible {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
         }
 
 
 
-        .home-categories-glow {
+        /* Homepage hero styles are maintained in app/globals.css. */
+
+                .home-categories-glow {
 
           background: radial-gradient(
 
@@ -1513,26 +1260,6 @@ export default function Home() {
 
 
 
-        @keyframes homeHeroImage {
-
-          from {
-
-            transform: scale(1.015);
-
-          }
-
-
-
-          to {
-
-            transform: scale(1.075);
-
-          }
-
-        }
-
-
-
         /* Keep review circles evenly sized and show four complete cards on desktop. */
         .home-review-track {
           --home-review-gap: 12px;
@@ -1912,7 +1639,12 @@ export default function Home() {
 
         @media (prefers-reduced-motion: reduce) {
 
-          .home-reveal,
+          #home .home-reveal,
+          html.home-reveal-ready #home .home-reveal:not(.is-visible) {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+          }
 
           .home-hero > img,
 
@@ -1957,11 +1689,13 @@ export default function Home() {
       {/* HERO SECTION */}
 
       <section className="home-hero relative isolate flex min-h-[calc(100svh-90px)] flex-col overflow-hidden">
-        <img
+        <Image
           src="/assets/images/kaduna-hero.png"
           alt="Kaduna landscape"
-          fetchPriority="high"
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-center"
+          fill
+          priority
+          sizes="100vw"
+          className="absolute inset-0 z-0 h-full w-full object-cover object-center"
         />
 
         <div
@@ -2028,15 +1762,15 @@ export default function Home() {
             <button
               type="button"
               onClick={() => navigateTo("/explore")}
-              className="home-hero-cta mt-5 inline-flex min-w-[280px] items-center justify-between gap-4 px-4 py-2.5 text-base font-extrabold sm:min-w-[380px] sm:gap-5 sm:px-7 sm:py-2.5 sm:text-lg"
+              className="home-hero-cta mt-5 inline-flex items-center justify-between text-sm font-extrabold sm:text-base"
             >
               <span className="inline-flex min-w-0 items-center gap-3 sm:gap-5">
                 <span className="home-hero-cta-icon">
-                  <Search size={38} strokeWidth={2.8} />
+                  <Search size={23} strokeWidth={2.5} />
                 </span>
                 <span>Explore Kaduna</span>
               </span>
-              <ArrowRight size={38} strokeWidth={2.8} />
+              <ArrowRight size={19} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -2044,11 +1778,18 @@ export default function Home() {
         <div className="home-hero-shortcuts">
           <div className="home-content grid grid-cols-3 items-stretch gap-2 px-5 sm:flex sm:flex-wrap sm:gap-2 sm:px-8 lg:px-0">
             {[
-              { label: "Destinations", icon: Mountain, filter: "attraction" },
-              { label: "Events", icon: Sparkles, href: "/events" },
-              { label: "Food & Drink", icon: Store, filter: "restaurant" },
-              { label: "Hotels", icon: Heart, filter: "hotel" },
-              { label: "Travel Guides", icon: Compass, href: "/guides" },
+              { label: "Top destinations", icon: MapPin, filter: "attraction" },
+              { label: "Events", icon: CalendarDays, href: "/events" },
+              {
+                label: "Natural beauty",
+                icon: Mountain,
+                filter: "natural-beauty",
+              },
+              {
+                label: "Cultural experiences",
+                icon: Landmark,
+                filter: "cultural-experiences",
+              },
             ].map(({ label, icon: Icon, filter, href }) => (
               <button
                 key={label}
@@ -2220,22 +1961,19 @@ export default function Home() {
                       padding: 0,
                     }}
                   >
-                    <div className="home-category-image relative aspect-[1.6/1] w-full overflow-hidden rounded-[17px] border-0 bg-transparent shadow-[0_5px_14px_rgba(64,48,0,0.12)] transition duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_13px_25px_rgba(64,48,0,0.2)] sm:rounded-[20px]">
-                      {category.image?.url ? (
+                    {category.image?.url && (
+                      <div className="home-category-image relative aspect-[1.6/1] w-full overflow-hidden rounded-[17px] border-0 bg-transparent shadow-[0_5px_14px_rgba(64,48,0,0.12)] transition duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_13px_25px_rgba(64,48,0,0.2)] sm:rounded-[20px]">
                         <img
-                          src={category.image.url}
+                          src={getCloudinaryImageUrl(category.image.url, 640)}
+                          srcSet={getCloudinaryImageSrcSet(category.image.url)}
+                          sizes="(max-width: 639px) 45vw, (max-width: 1023px) 30vw, 260px"
                           alt={category.image.alt || category.name}
                           loading="lazy"
+                          decoding="async"
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#E9C000] to-[#D5A900]">
-                          <span className="rounded-full border border-[#103C2A]/40 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-[#103C2A]">
-                            Image Loading...
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <h3 className="home-category-card-title mt-2.5 inline-flex w-fit max-w-full flex-col text-[13px] font-black leading-tight tracking-[-0.035em] text-[#080B08] sm:mt-3 sm:text-[15px] lg:text-base">
                       <span>{category.name}</span>
@@ -2339,9 +2077,12 @@ export default function Home() {
                       className="h-10 w-10 overflow-hidden rounded-full border-[2px] border-[#F4E9C7] bg-[#D5E2C8] shadow-sm sm:h-12 sm:w-12"
                     >
                       <img
-                        src={item.url}
+                        src={getCloudinaryImageUrl(item.url, 160)}
+                        srcSet={getCloudinaryImageSrcSet(item.url)}
+                        sizes="48px"
                         alt=""
                         loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     </span>
@@ -2395,22 +2136,13 @@ export default function Home() {
               </button>
             </div>
 
-            {destinationsLoading ? (
-              <div
-                role="status"
-                className="flex min-h-[250px] items-center justify-center rounded-[26px] border border-[#D4C98E] bg-[#F4EBCB]/70 text-xs font-semibold text-[#526B8A]"
-              >
-                <RefreshCw size={17} className="mr-3 animate-spin" />
-                Loading featured destinations...
-              </div>
-            ) : destinationsError ? (
+            {destinationsLoading &&
+            !destinations.length ? null : destinationsError ? (
               <div
                 role="alert"
                 className="rounded-[26px] bg-[#F4EBCB] p-7 text-center"
               >
-                <p className="text-sm font-bold text-red-800">
-                  We could not load featured destinations.
-                </p>
+                <p className="text-sm font-bold text-red-800">loading...</p>
 
                 <button
                   type="button"
@@ -2463,12 +2195,15 @@ export default function Home() {
                         >
                           {image ? (
                             <img
-                              src={image}
+                              src={getCloudinaryImageUrl(image, 900)}
+                              srcSet={getCloudinaryImageSrcSet(image)}
+                              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, 450px"
                               alt={
                                 destination.name ||
                                 "Featured Kaduna destination"
                               }
                               loading={index === 0 ? "eager" : "lazy"}
+                              decoding="async"
                               className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                             />
                           ) : (
@@ -2600,11 +2335,7 @@ export default function Home() {
                       : "no-review-arrows"
                   }`}
                 >
-                  {reviewsLoading ? (
-                    <p className="px-2 py-3 text-[10px] text-[#526B8A]">
-                      Loading visitor reviews...
-                    </p>
-                  ) : reviews.length ? (
+                  {reviews.length ? (
                     <div
                       ref={reviewTrackRef}
                       className="home-review-track flex snap-x snap-mandatory items-center overflow-x-hidden px-1 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [scroll-behavior:smooth]"
@@ -2623,9 +2354,14 @@ export default function Home() {
                             <div className="mb-1.5 h-8 w-8 shrink-0 overflow-hidden rounded-full border-2 border-white bg-[#D9E9FA] shadow-sm sm:h-9 sm:w-9">
                               {author.photo ? (
                                 <img
-                                  src={author.photo}
+                                  src={getCloudinaryImageUrl(author.photo, 160)}
+                                  srcSet={getCloudinaryImageSrcSet(
+                                    author.photo,
+                                  )}
+                                  sizes="36px"
                                   alt={author.name}
                                   loading="lazy"
+                                  decoding="async"
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
@@ -2663,7 +2399,7 @@ export default function Home() {
                         );
                       })}
                     </div>
-                  ) : (
+                  ) : reviewsLoading ? null : (
                     <p className="px-2 py-3 text-[10px] leading-5 text-[#526B8A]">
                       No visitor reviews have been published yet.
                     </p>
@@ -2894,7 +2630,9 @@ export default function Home() {
                                 aria-hidden={!isFront}
                               >
                                 <img
-                                  src={image.url}
+                                  src={getCloudinaryImageUrl(image.url, 900)}
+                                  srcSet={getCloudinaryImageSrcSet(image.url)}
+                                  sizes="(max-width: 639px) 124px, (max-width: 1023px) 220px, 320px"
                                   alt={
                                     image.name ||
                                     image.alt ||
@@ -2905,6 +2643,7 @@ export default function Home() {
                                       ? "eager"
                                       : "lazy"
                                   }
+                                  decoding="async"
                                   draggable="false"
                                 />
                                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/65 via-black/15 to-transparent px-2 pb-3 pt-12 sm:px-3 sm:pb-4">
@@ -2926,12 +2665,6 @@ export default function Home() {
                           },
                         );
                       })}
-                    </div>
-                  )}
-
-                  {aboutGallery.length === 0 && (
-                    <div className="absolute inset-[8%] flex items-center justify-center rounded-[30px] border-[9px] border-white bg-[#E7EBDD] text-center text-sm font-bold text-[#66816C] shadow-xl">
-                      Image Loading...
                     </div>
                   )}
                 </div>

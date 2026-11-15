@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import useDestinationReviews from "@/hooks/destination/useDestinationReviews";
+import OptimizedImage from "@/components/OptimizedImage";
 
 import {
   AlertCircle,
@@ -161,10 +162,11 @@ function ReviewPhotoGallery({ photos, shouldReduceMotion }) {
             transition={{ duration: 0.25 }}
             className="group relative aspect-square overflow-hidden rounded-lg border border-[#E8ECE8] bg-[#F5F7F4] sm:rounded-xl"
           >
-            <img
+            <OptimizedImage
               src={photo.url}
               alt={photo.alt || `Visitor review photo ${index + 1}`}
-              loading="lazy"
+              fill
+              sizes="(max-width: 639px) 33vw, (max-width: 767px) 25vw, 20vw"
               className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             />
           </motion.a>
@@ -681,12 +683,14 @@ export default function DestinationReviews({ destination }) {
                             key={photo.publicId || photo.url || index}
                             className="group/photo relative aspect-square overflow-hidden rounded-lg border border-[#E8ECE8] bg-[#F5F7F4] sm:rounded-xl"
                           >
-                            <img
+                            <OptimizedImage
                               src={photo.url}
                               alt={
                                 photo.alt ||
                                 `Existing review photo ${index + 1}`
                               }
+                              fill
+                              sizes="(max-width: 639px) 33vw, (max-width: 767px) 25vw, 20vw"
                               className={`h-full w-full object-cover transition-all duration-300 ${
                                 isMarkedForRemoval
                                   ? "scale-95 opacity-30 grayscale"
@@ -997,9 +1001,12 @@ export default function DestinationReviews({ destination }) {
                     <div className="flex items-start gap-3 sm:gap-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#EAF1EB] text-sm font-semibold text-[#174B35] transition-transform duration-300 group-hover:scale-105 sm:h-11 sm:w-11">
                         {review.user?.photo ? (
-                          <img
+                          <OptimizedImage
                             src={review.user.photo}
                             alt={reviewerName}
+                            width={44}
+                            height={44}
+                            sizes="44px"
                             className="h-full w-full object-cover"
                           />
                         ) : (

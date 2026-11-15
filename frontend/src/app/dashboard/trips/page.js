@@ -25,6 +25,7 @@ import {
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/OptimizedImage";
 import { apiRequest } from "@/lib/api";
 
 const EMPTY_FORM = {
@@ -389,10 +390,12 @@ function ItineraryItem({
         </div>
 
         {image ? (
-          <img
+          <OptimizedImage
             src={image}
             alt={title}
-            loading="lazy"
+            width={88}
+            height={88}
+            sizes="(min-width: 640px) 88px, 76px"
             className="h-[76px] w-[76px] shrink-0 rounded-xl object-cover sm:h-[88px] sm:w-[88px]"
           />
         ) : (
@@ -911,10 +914,12 @@ function TripCard({
                             className="flex min-w-0 items-center gap-3 rounded-xl bg-white p-3"
                           >
                             {image ? (
-                              <img
+                              <OptimizedImage
                                 src={image}
                                 alt={title}
-                                loading="lazy"
+                                width={48}
+                                height={48}
+                                sizes="48px"
                                 className="h-12 w-12 shrink-0 rounded-lg object-cover"
                               />
                             ) : (

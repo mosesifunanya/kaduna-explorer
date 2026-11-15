@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import OptimizedImage from "@/components/OptimizedImage";
 import {
   ArrowUpRight,
   Clock3,
@@ -210,11 +211,12 @@ export default function NearbyPlaceCard({ place = {} }) {
     >
       {/* Place photograph and category placeholder */}
       <div className="relative h-32 overflow-hidden bg-[#EDF2EB] sm:h-40 lg:h-44">
-        <img
+        <OptimizedImage
           src={placeholder}
           alt=""
           aria-hidden="true"
-          loading="lazy"
+          fill
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="absolute inset-0 h-full w-full object-cover"
         />
 

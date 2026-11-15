@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import OptimizedImage from "@/components/OptimizedImage";
 
 export default function DestinationGalleryViewer({
   destinationName,
@@ -42,9 +43,12 @@ export default function DestinationGalleryViewer({
         </div>
 
         <div className="relative flex min-h-0 w-full flex-1 items-center justify-center">
-          <img
+          <OptimizedImage
             src={gallery[activeImage]}
             alt={`${destinationName} photo ${activeImage + 1}`}
+            sizes="(max-width: 639px) 100vw, 1152px"
+            loading="eager"
+            fetchPriority="high"
             className="max-h-[72vh] max-w-full rounded-xl object-contain sm:max-h-[76vh]"
           />
 
@@ -99,9 +103,10 @@ export default function DestinationGalleryViewer({
                     : "border-transparent opacity-60 hover:opacity-100"
                 }`}
               >
-                <img
+                <OptimizedImage
                   src={image}
                   alt=""
+                  sizes="(max-width: 639px) 64px, 96px"
                   loading="lazy"
                   className="h-full w-full object-cover"
                 />

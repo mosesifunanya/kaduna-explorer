@@ -5,6 +5,8 @@ const compression = require("compression");
 const helmet = require("helmet");
 const mongoSanitize = require("@exortek/express-mongo-sanitize");
 
+const connectDB = require("./config/database");
+
 const authRoutes = require("./routes/authRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
 const homepageRoutes = require("./routes/homepageRoutes");
@@ -26,6 +28,9 @@ const globalErrorHandler = require("./controllers/errorController");
 const app = express();
 
 app.disable("x-powered-by");
+
+// Trust Vercel's reverse proxy.
+app.set("trust proxy", 1);
 
 // ============================================
 // SECURITY HEADERS
@@ -103,6 +108,19 @@ app.get("/", (req, res) => {
     status: "success",
     message: "Welcome to Kaduna Explorer API!",
   });
+});
+
+// ============================================
+// DATABASE CONNECTION
+// ============================================
+
+app.use("/api/v1", async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 // ============================================
