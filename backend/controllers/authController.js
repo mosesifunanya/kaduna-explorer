@@ -34,13 +34,21 @@ const sendSuccess = (res, statusCode, message, data) =>
     ...(data && { data }),
   });
 
+// Use environment-aware cookie settings so authentication works locally
+// and when the frontend/backend are deployed on separate Vercel domains.
+const isProduction = process.env.NODE_ENV === "production";
+
+const jwtCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  path: "/",
+};
+
 const setLoggedOutCookie = (res) => {
   res.cookie("jwt", "loggedout", {
+    ...jwtCookieOptions,
     expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
   });
 };
 
@@ -49,11 +57,8 @@ const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id, user.tokenVersion);
 
   res.cookie("jwt", token, {
+    ...jwtCookieOptions,
     expires: new Date(Date.now() + cookieDays * 86400000),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
   });
 
   return res.status(statusCode).json({
