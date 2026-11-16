@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/api";
 const inputClass =
   "h-[40px] sm:h-[46px] w-full rounded-xl border border-[#D7E0E9] bg-white/90 px-4 text-sm text-[#183451] outline-none transition placeholder:text-[#91A0B3] hover:border-[#B7C7D6] focus:border-[#087747] focus:ring-4 focus:ring-[#087747]/10 disabled:cursor-not-allowed disabled:opacity-70";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const params = useParams();
   const router = useRouter();
   const token = typeof params?.token === "string" ? params.token : "";
@@ -210,5 +210,13 @@ export default function ResetPasswordPage() {
         </form>
       )}
     </AuthLayout>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
