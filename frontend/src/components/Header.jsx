@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import Link from "next/link";
 
@@ -264,6 +265,9 @@ export default function Header({ activeNav }) {
       });
 
       setAuthenticatedUser(null);
+      toast.success("You’ve been logged out", {
+        description: "Your session has ended. We hope to see you again!",
+      });
 
       // Clear the shared favourites state after logout.
 

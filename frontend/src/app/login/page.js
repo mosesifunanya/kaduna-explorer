@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Eye, EyeOff, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 import AuthLayout from "@/components/AuthLayout";
 import { useAuth } from "@/components/AuthProvider";
@@ -73,6 +74,9 @@ export default function LoginPage() {
     // The login response now includes the complete profile fields
     // needed by the shared authentication provider.
     setAuthenticatedUser(user);
+    toast.success(`Welcome back${user.name ? `, ${user.name}` : ""}!`, {
+      description: "You’re signed in and ready to explore Kaduna.",
+    });
 
     const authenticatedUser = user;
 

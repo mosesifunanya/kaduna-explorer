@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
+
 import {
   Bookmark,
   X,
@@ -306,7 +307,6 @@ export default function DestinationFavorite({
       </div>
 
       {/* COMPACT SAVED DESTINATION NOTIFICATION */}
-
       {portalReady &&
         createPortal(
           <AnimatePresence>
@@ -423,123 +423,125 @@ export default function DestinationFavorite({
         )}
 
       {/* SIGN-IN PROMPT */}
-
-      {showLoginPrompt && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[#071B12]/70 px-4 py-6 backdrop-blur-md"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              closePrompt();
-            }
-          }}
-        >
-          <section
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="favorite-login-title"
-            aria-describedby="favorite-login-description"
-            className="relative my-auto w-full max-w-[430px] overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_30px_100px_rgba(0,0,0,0.3)]"
+      {portalReady &&
+        showLoginPrompt &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[#071B12]/70 px-4 py-6 backdrop-blur-md"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                closePrompt();
+              }
+            }}
           >
-            <div className="relative overflow-hidden bg-gradient-to-br from-[#103C2A] via-[#18543A] to-[#285D43] px-6 pb-9 pt-8 text-center sm:px-9">
-              <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full border border-white/10" />
+            <section
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="favorite-login-title"
+              aria-describedby="favorite-login-description"
+              className="relative my-auto w-full max-w-[430px] overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_30px_100px_rgba(0,0,0,0.3)]"
+            >
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#103C2A] via-[#18543A] to-[#285D43] px-6 pb-9 pt-8 text-center sm:px-9">
+                <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full border border-white/10" />
 
-              <div className="pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full border border-white/10" />
+                <div className="pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full border border-white/10" />
 
-              <button
-                ref={closeButtonRef}
-                type="button"
-                onClick={closePrompt}
-                aria-label="Close login prompt"
-                className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD4A]"
-              >
-                <X size={18} />
-              </button>
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  onClick={closePrompt}
+                  aria-label="Close login prompt"
+                  className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD4A]"
+                >
+                  <X size={18} />
+                </button>
 
-              <div className="relative mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-[25px] border border-white/20 bg-white/10 text-[#FFBD4A] shadow-inner">
-                <Bookmark size={36} strokeWidth={1.7} />
-              </div>
-
-              <p className="relative mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FFBD4A]">
-                Your personal collection
-              </p>
-
-              <h2
-                id="favorite-login-title"
-                className="relative mt-2 text-[25px] font-extrabold tracking-tight text-white sm:text-[29px]"
-              >
-                Save destinations for later
-              </h2>
-
-              <p
-                id="favorite-login-description"
-                className="relative mx-auto mt-3 max-w-[300px] text-[13px] leading-6 text-white/75 sm:text-sm"
-              >
-                Keep your saved destinations together and easily discover them
-                whenever you return to Kaduna Explorer.
-              </p>
-            </div>
-
-            <div className="px-5 pb-7 pt-6 sm:px-8">
-              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[#E7EDE7] bg-[#F6F9F5] p-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E6F0E7] text-[#18543A]">
-                  <LockKeyhole size={18} />
+                <div className="relative mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-[25px] border border-white/20 bg-white/10 text-[#FFBD4A] shadow-inner">
+                  <Bookmark size={36} strokeWidth={1.7} />
                 </div>
 
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-[#173B2A]">
-                    Sign in to continue
-                  </p>
+                <p className="relative mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FFBD4A]">
+                  Your personal collection
+                </p>
 
-                  <p className="mt-1 text-xs leading-5 text-[#6A7B70]">
-                    Create an account or sign in to save{" "}
-                    <span className="font-semibold text-[#315A43]">
-                      {destinationName}
-                    </span>
-                    .
-                  </p>
+                <h2
+                  id="favorite-login-title"
+                  className="relative mt-2 text-[25px] font-extrabold tracking-tight text-white sm:text-[29px]"
+                >
+                  Save destinations for later
+                </h2>
+
+                <p
+                  id="favorite-login-description"
+                  className="relative mx-auto mt-3 max-w-[300px] text-[13px] leading-6 text-white/75 sm:text-sm"
+                >
+                  Keep your saved destinations together and easily discover them
+                  whenever you return to Kaduna Explorer.
+                </p>
+              </div>
+
+              <div className="px-5 pb-7 pt-6 sm:px-8">
+                <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[#E7EDE7] bg-[#F6F9F5] p-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E6F0E7] text-[#18543A]">
+                    <LockKeyhole size={18} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#173B2A]">
+                      Sign in to continue
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[#6A7B70]">
+                      Create an account or sign in to save{" "}
+                      <span className="font-semibold text-[#315A43]">
+                        {destinationName}
+                      </span>
+                      .
+                    </p>
+                  </div>
                 </div>
+
+                <Link
+                  href={loginHref}
+                  onClick={closePrompt}
+                  className="group flex min-h-[51px] w-full items-center justify-center gap-2 rounded-xl bg-[#103C2A] px-5 text-sm font-bold text-white shadow-lg shadow-[#103C2A]/15 transition hover:bg-[#18543A] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD4A] focus-visible:ring-offset-2"
+                >
+                  <LogIn size={17} />
+                  Sign in to your account
+                  <ArrowRight
+                    size={16}
+                    className="ml-auto transition-transform group-hover:translate-x-1"
+                  />
+                </Link>
+
+                <Link
+                  href={signupHref}
+                  onClick={closePrompt}
+                  className="mt-3 flex min-h-[49px] w-full items-center justify-center gap-2 rounded-xl border border-[#DCE7DC] bg-white px-5 text-sm font-bold text-[#244B38] transition hover:border-[#B8CEBA] hover:bg-[#F6F9F5] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087747] focus-visible:ring-offset-2"
+                >
+                  <UserPlus size={17} />
+                  Create an account
+                </Link>
+
+                <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-[#89958C]">
+                  <ShieldCheck size={14} />
+                  Your saved places stay linked to your account
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closePrompt}
+                  className="mt-3 flex w-full items-center justify-center gap-2 py-2 text-xs font-semibold text-[#89958C] transition hover:text-[#244B38]"
+                >
+                  <Check size={14} />
+                  Maybe later
+                </button>
               </div>
-
-              <Link
-                href={loginHref}
-                onClick={closePrompt}
-                className="group flex min-h-[51px] w-full items-center justify-center gap-2 rounded-xl bg-[#103C2A] px-5 text-sm font-bold text-white shadow-lg shadow-[#103C2A]/15 transition hover:bg-[#18543A] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBD4A] focus-visible:ring-offset-2"
-              >
-                <LogIn size={17} />
-                Sign in to your account
-                <ArrowRight
-                  size={16}
-                  className="ml-auto transition-transform group-hover:translate-x-1"
-                />
-              </Link>
-
-              <Link
-                href={signupHref}
-                onClick={closePrompt}
-                className="mt-3 flex min-h-[49px] w-full items-center justify-center gap-2 rounded-xl border border-[#DCE7DC] bg-white px-5 text-sm font-bold text-[#244B38] transition hover:border-[#B8CEBA] hover:bg-[#F6F9F5] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#087747] focus-visible:ring-offset-2"
-              >
-                <UserPlus size={17} />
-                Create an account
-              </Link>
-
-              <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-[#89958C]">
-                <ShieldCheck size={14} />
-                Your saved places stay linked to your account
-              </div>
-
-              <button
-                type="button"
-                onClick={closePrompt}
-                className="mt-3 flex w-full items-center justify-center gap-2 py-2 text-xs font-semibold text-[#89958C] transition hover:text-[#244B38]"
-              >
-                <Check size={14} />
-                Maybe later
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+            </section>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
