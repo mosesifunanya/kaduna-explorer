@@ -1589,7 +1589,8 @@ html[data-admin-theme="dark"] .admin-shell button:disabled {
     flex-direction: column;
     height: auto;
     min-height: 0;
-    padding-bottom: 45px;
+    /* Give the mobile hero more vertical breathing room before Start Exploring. */
+    padding-bottom: 95px;
   }
 
   .home-hero-content {
@@ -1618,7 +1619,11 @@ html[data-admin-theme="dark"] .admin-shell button:disabled {
   }
 
   .home-hero-scribble {
-    width: min(88%, 300px);
+    /* Let the mobile underline use the full hero-copy width instead of
+       shrinking to 88%, so the flourish keeps its desktop-like presence. */
+    width: min(100%, 340px);
+    height: 18px;
+    margin-left: 0;
   }
 
   .home-hero-shortcuts {
